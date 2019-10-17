@@ -1,6 +1,6 @@
 /*
 *
-*	IMPORTAÇÕES
+*	IMPORTACOES
 *
 */
 
@@ -17,18 +17,27 @@
 
 /*
 *
-* DECLARAÇÕES GLOBAIS
+* DECLARACOES GLOBAIS
 *
 */
+
+IoAbstractionRef ioDevice = ioUsingArduino();
 
 ESP8266WebServer server(80);
 WebSocketsServer webSocket = WebSocketsServer(81);
 
 WiFiClient client;
+WiFiManager wifiManager;
+
+/*
+*
+* VARIAVEIS GLOBAIS
+*
+*/
 
 const int ledPin = LED_BUILTIN;
 int ledState = HIGH;
-IoAbstractionRef ioDevice = ioUsingArduino();
+boolean connectionState = false;
 
 /*
 *
@@ -54,16 +63,58 @@ void loop()
     taskManager.runLoop();
 }
 
+/*
+*
+* DEBUG
+*
+*/
+
+boolean debug = true;
+
+void debugPrint(String message){
+    if(debug){
+        Serial.print(message);
+    }
+}
+
+void debugPrintln(String message){
+    if(debug){
+        Serial.println(message);
+    }
+}
+
 void ledBlink()
-{
-    ledState = !ledState; // toggle the LED state.
-    ioDeviceDigitalWriteS(ioDevice, ledPin, ledState);
-    // Serial.println(ledOn);
+{   
+    debugPrint("Estado de conexão: "); debugPrintln(String(connectionState));
+    if (connectionState) {
+        ledState = HIGH; // não pisca
+        ioDeviceDigitalWriteS(ioDevice, ledPin, ledState);
+        // Serial.println(ledOn);
+    } else {
+        ledState = !ledState; // pisca
+        ioDeviceDigitalWriteS(ioDevice, ledPin, ledState);
+    }
+}
+
+/*
+*
+* CONFIGS WIFI
+*
+*/
+
+void configureWifiManager(){
+    wifiManager.setDebugOutput(debug);
 }
 
 void wifiInit()
-{
-    WiFiManager wifiManager;
-    wifiManager.autoConnect("AutoConnectAP");
-    Serial.println("Conectado");
+{   
+    configureWifiManager();
+    if (!wifiManager.autoConnect("AutoConnectAP")) {
+        debugPrintln("Iniciando ponto de acesso AP");
+        connectionState = false;
+    } else {
+        connectionState = true;
+        debugPrintln("Conectado ao roteador");
+    }
+    //wifiManager.resetSettings();
 }
